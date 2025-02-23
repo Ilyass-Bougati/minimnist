@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>12x6 Pixel Drawing</title>
+    <style>
+        body { text-align: center; font-family: Arial, sans-serif; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(6, 20px);
+            gap: 2px;
+            margin: 20px auto;
+            width: fit-content;
+        }
+        .pixel {
+            width: 20px;
+            height: 20px;
+            background-color: white;
+            border: 1px solid #ddd;
+            cursor: pointer;
+        }
+        .pixel.active { background-color: black; }
+        button { margin: 10px; padding: 10px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h2 id="title">Draw a 12x6 Image</h2>
+    <div class="grid" id="grid"></div>
+    <button onclick="clearGrid()">Clear</button>
+    <button onclick="logPixels()">AI this b*ch</button>
+
+    <script>
+        const rows = 12, cols = 6;
+        let pixelArray = Array.from({ length: rows }, () => Array(cols).fill(0));
+        const grid = document.getElementById("grid");
+
+        function createGrid() {
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    const pixel = document.createElement("div");
+                    pixel.classList.add("pixel");
+                    pixel.dataset.x = x;
+                    pixel.dataset.y = y;
+                    pixel.addEventListener("click", togglePixel);
+                    grid.appendChild(pixel);
+                }
+            }
+        }
+
+        function togglePixel(event) {
+            const pixel = event.target;
+            const x = pixel.dataset.x;
+            const y = pixel.dataset.y;
+            const isActive = pixel.classList.toggle("active");
+            pixelArray[y][x] = isActive ? 1 : 0;
+
+            logPixels()
+        }
+
+        function clearGrid() {
+            document.querySelectorAll(".pixel").forEach(pixel => pixel.classList.remove("active"));
+            pixelArray = Array.from({ length: rows }, () => Array(cols).fill(0));
+        }
+
+        async function logPixels() {
+            const response = await fetch(
+                "/ai",
+                {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({image: pixelArray})
+                },
+            )    
+
+            const content = await response.json()
+            let probability = content["res"]
+            let title = document.getElementById("title")
+
+            // get the most probable
+            let max = 0
+            for (let i = 0; i < 10; i++) {
+                if (probability[max] < probability[i]) {
+                    max = i
+                }
+            }
+            console.log(content)
+        
+            title.innerText = `This has a probability of ${probability[max].toFixed(4) * 100}% to be a ${max}`
+        }
+
+
+        createGrid();
+    </script>
+</body>
+</html>
